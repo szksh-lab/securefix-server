@@ -23,6 +23,17 @@ inputs:
       Workflow name
     required: true
     default: securefix
+  commit_message:
+    description: |
+      Commit message
+    required: true
+    default: Securefix
+  pull_request_comment:
+    description: |
+      Pull Request comment
+    required: true
+    default: |
+      :x: Securefix failed.
 runs:
   using: composite
   steps:
@@ -43,6 +54,7 @@ runs:
           echo "run_id=${LABEL_DESCRIPTION##*/}"
         } >> "$GITHUB_OUTPUT"
 
+    # Create a GitHub App token to download a GitHub Actions artifact
     - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       id: token
       with:
@@ -55,6 +67,7 @@ runs:
             "actions": "read"
           }
 
+    # Get GitHub Actions Workflow Run
     - id: workflow_run
       shell: bash
       env:
@@ -75,12 +88,14 @@ runs:
         fi
         echo "head_branch=$head_branch" >> "$GITHUB_OUTPUT"
 
+    # Download a GitHub Actions Artifact
     - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
       with:
         github-token: ${{ steps.token.outputs.token }}
         name: ${{ github.event.label.name }}
         repository: ${{ steps.info.outputs.repo_full_name }}
         run-id: ${{ steps.info.outputs.run_id }}
+    # Read a metadata file
     - id: metadata
       shell: bash
       env:
@@ -89,6 +104,7 @@ runs:
         number=$(jq -r ".pull_request.number" "$METADATA_FILE")
         echo "pr_number=$number" >> "$GITHUB_OUTPUT"
         rm "$METADATA_FILE"
+    # Read changed file paths
     - id: files
       shell: bash
       env:
@@ -100,6 +116,7 @@ runs:
           echo EOF
         } >> "$GITHUB_OUTPUT"
         rm "$FILES"
+    # Create and push a commit
     - if: ${{ steps.files.outputs.value != '' }}
       uses: suzuki-shunsuke/commit-action@9faad521ea6a1e768439ffbe6b25b6cb3fc1b181 # v0.0.6
       with:
@@ -109,9 +126,10 @@ runs:
         branch: ${{ steps.workflow_run.outputs.head_branch }}
         files: ${{ steps.files.outputs.value }}
         commit_message: |
-          Securefix
+          ${{inputs.commit_message}}
           ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
 
+    # Create a GitHub App token to report an error to a pull request
     - if: failure() && steps.metadata.outputs.pr_number != 'null'
       uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       id: pr_token
@@ -125,6 +143,7 @@ runs:
             "pull_requests": "write"
           }
 
+    # Create a pull request comment to report an error
     - if: failure() && steps.metadata.outputs.pr_number != 'null'
       shell: bash
       env:
@@ -134,5 +153,6 @@ runs:
       run: |
         gh pr comment \
           -R "$REPO" \
-          -b ":x: [Securefix failed.]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)" \
+          -b "${{inputs.pull_request_comment}}" \
+          [Workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)" \
           "$PR_NUMBER"
