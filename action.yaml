@@ -47,7 +47,7 @@ runs:
       id: token
       with:
         app_id: ${{inputs.app_id}}
-        app_private_key: ${{inputs.app_private_key}}
+        private_key: ${{inputs.app_private_key}}
         repositories: >-
           ["${{ steps.info.outputs.repo }}"]
         permissions: >-
@@ -104,7 +104,7 @@ runs:
       uses: suzuki-shunsuke/commit-action@9faad521ea6a1e768439ffbe6b25b6cb3fc1b181 # v0.0.6
       with:
         app_id: ${{inputs.app_id}}
-        app_private_key: ${{inputs.app_private_key}}
+        private_key: ${{inputs.app_private_key}}
         repository: ${{ steps.info.outputs.repo_full_name }}
         branch: ${{ steps.workflow_run.outputs.head_branch }}
         files: ${{ steps.files.outputs.value }}
@@ -117,7 +117,7 @@ runs:
       id: pr_token
       with:
         app_id: ${{inputs.app_id}}
-        app_private_key: ${{inputs.app_private_key}}
+        private_key: ${{inputs.app_private_key}}
         repositories: >-
           ["${{ steps.info.outputs.repo }}"]
         permissions: >-
